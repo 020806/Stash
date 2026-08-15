@@ -1,0 +1,190 @@
+# EdgeTunnel 2.1 + SUBAPI 最终精简 Stash 模板
+# 适用：iPhone / Stash
+# 设计目标：
+# 1. 不裁剪订阅节点；通过 include-all 自动接收后续新增/失效节点
+# 2. 节点只在「🔰 节点选择」「♻️ 自动选择」中直接收纳，避免重复展开
+# 3. AI、YouTube、Google、海外常用服务、Apple 分开分流
+# 4. 不包含 Netflix、Disney+ 等付费视频流媒体专用规则
+# 5. 不把原配置约 8869 条广告规则塞入主配置，避免再次膨胀
+mode: rule
+log-level: info
+
+dns:
+  enable: true
+  use-hosts: true
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  nameserver:
+    - https://sm2.doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - 8.8.4.4
+    - 208.67.220.220
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+      - 127.0.0.1/32
+      - 0.0.0.0/32
+    domain:
+      - '+.google.com'
+      - '+.youtube.com'
+      - '+.openai.com'
+      - '+.anthropic.com'
+
+proxy-groups:
+  - name: 🔰 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+    include-all: true
+
+  - name: ♻️ 自动选择
+    type: url-test
+    interval: 300
+    lazy: true
+    include-all: true
+
+  - name: 🤖 AI
+    type: select
+    proxies:
+      - 🔰 节点选择
+      - ♻️ 自动选择
+      - DIRECT
+
+  - name: ▶️ YouTube
+    type: select
+    proxies:
+      - 🔰 节点选择
+      - ♻️ 自动选择
+      - DIRECT
+
+  - name: 🌐 Google
+    type: select
+    proxies:
+      - 🔰 节点选择
+      - ♻️ 自动选择
+      - DIRECT
+
+  - name: 🌍 海外服务
+    type: select
+    proxies:
+      - 🔰 节点选择
+      - ♻️ 自动选择
+      - DIRECT
+
+  - name: 🍎 Apple
+    type: select
+    proxies:
+      - 🔰 节点选择
+      - ♻️ 自动选择
+      - DIRECT
+
+rules:
+  # 局域网 / 保留地址
+  - DOMAIN-SUFFIX,local,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - IP-CIDR6,::1/128,DIRECT,no-resolve
+  - IP-CIDR6,fc00::/7,DIRECT,no-resolve
+  - IP-CIDR6,fe80::/10,DIRECT,no-resolve
+
+  # AI：优先于 Google
+  - DOMAIN-SUFFIX,openai.com,🤖 AI
+  - DOMAIN-SUFFIX,chatgpt.com,🤖 AI
+  - DOMAIN-SUFFIX,chat.openai.com,🤖 AI
+  - DOMAIN-SUFFIX,auth.openai.com,🤖 AI
+  - DOMAIN-SUFFIX,oaistatic.com,🤖 AI
+  - DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI
+  - DOMAIN-SUFFIX,anthropic.com,🤖 AI
+  - DOMAIN-SUFFIX,claude.ai,🤖 AI
+  - DOMAIN-SUFFIX,claude.com,🤖 AI
+  - DOMAIN-SUFFIX,gemini.google.com,🤖 AI
+  - DOMAIN-SUFFIX,generativelanguage.googleapis.com,🤖 AI
+  - DOMAIN-SUFFIX,aistudio.google.com,🤖 AI
+  - DOMAIN-SUFFIX,ai.google.dev,🤖 AI
+  - DOMAIN-SUFFIX,bard.google.com,🤖 AI
+  - DOMAIN-SUFFIX,deepseek.com,🤖 AI
+  - DOMAIN-SUFFIX,perplexity.ai,🤖 AI
+  - DOMAIN-SUFFIX,perplexity.com,🤖 AI
+  - DOMAIN-SUFFIX,poe.com,🤖 AI
+  - DOMAIN-SUFFIX,grok.com,🤖 AI
+  - DOMAIN-SUFFIX,x.ai,🤖 AI
+  - DOMAIN-SUFFIX,mistral.ai,🤖 AI
+  - DOMAIN-SUFFIX,copilot.microsoft.com,🤖 AI
+  - DOMAIN-SUFFIX,huggingface.co,🤖 AI
+  - DOMAIN-SUFFIX,hf.co,🤖 AI
+  - DOMAIN-SUFFIX,replicate.com,🤖 AI
+
+  # YouTube：页面、API、缩略图及视频 CDN
+  - DOMAIN-SUFFIX,youtube.com,▶️ YouTube
+  - DOMAIN-SUFFIX,youtube-nocookie.com,▶️ YouTube
+  - DOMAIN-SUFFIX,youtu.be,▶️ YouTube
+  - DOMAIN-SUFFIX,ytimg.com,▶️ YouTube
+  - DOMAIN-SUFFIX,googlevideo.com,▶️ YouTube
+  - DOMAIN-SUFFIX,youtubei.googleapis.com,▶️ YouTube
+  - DOMAIN-SUFFIX,youtube.googleapis.com,▶️ YouTube
+  - DOMAIN-SUFFIX,gvt1.com,▶️ YouTube
+  - DOMAIN-SUFFIX,gvt2.com,▶️ YouTube
+
+  # Google
+  - DOMAIN-SUFFIX,google.com,🌐 Google
+  - DOMAIN-SUFFIX,googleapis.com,🌐 Google
+  - DOMAIN-SUFFIX,gstatic.com,🌐 Google
+  - DOMAIN-SUFFIX,googleusercontent.com,🌐 Google
+  - DOMAIN-SUFFIX,google.co,🌐 Google
+  - DOMAIN-SUFFIX,google.co.uk,🌐 Google
+  - DOMAIN-SUFFIX,google.ca,🌐 Google
+  - DOMAIN-SUFFIX,google.com.hk,🌐 Google
+  - DOMAIN-SUFFIX,google.com.sg,🌐 Google
+  - DOMAIN-SUFFIX,googleadservices.com,🌐 Google
+  - DOMAIN-SUFFIX,googlesyndication.com,🌐 Google
+  - DOMAIN-SUFFIX,google-analytics.com,🌐 Google
+  - DOMAIN-SUFFIX,blog.google,🌐 Google
+  - DOMAIN-SUFFIX,googletraveladservices.com,🌐 Google
+
+  # GitHub / Telegram / Microsoft
+  - DOMAIN-SUFFIX,github.com,🌍 海外服务
+  - DOMAIN-SUFFIX,github.io,🌍 海外服务
+  - DOMAIN-SUFFIX,githubusercontent.com,🌍 海外服务
+  - DOMAIN-SUFFIX,githubassets.com,🌍 海外服务
+  - DOMAIN-SUFFIX,t.me,🌍 海外服务
+  - DOMAIN-SUFFIX,telegram.org,🌍 海外服务
+  - DOMAIN-SUFFIX,telegra.ph,🌍 海外服务
+  - DOMAIN-SUFFIX,telegram.me,🌍 海外服务
+  - DOMAIN-SUFFIX,1drv.com,🌍 海外服务
+  - DOMAIN-SUFFIX,onedrive.com,🌍 海外服务
+  - DOMAIN-SUFFIX,live.com,🌍 海外服务
+  - DOMAIN-SUFFIX,outlook.com,🌍 海外服务
+  - DOMAIN-SUFFIX,office.com,🌍 海外服务
+  - DOMAIN-SUFFIX,office.net,🌍 海外服务
+  - DOMAIN-SUFFIX,microsoft.com,🌍 海外服务
+  - DOMAIN-SUFFIX,microsoftonline.com,🌍 海外服务
+  - DOMAIN-SUFFIX,msauth.net,🌍 海外服务
+  - DOMAIN-SUFFIX,msftauth.net,🌍 海外服务
+  - DOMAIN-SUFFIX,bing.com,🌍 海外服务
+  - DOMAIN-SUFFIX,azure.com,🌍 海外服务
+  - DOMAIN-SUFFIX,visualstudio.com,🌍 海外服务
+
+  # Apple：保留普通 Apple 服务，不加入 Apple TV 等付费视频分流
+  - DOMAIN-SUFFIX,apple.com,🍎 Apple
+  - DOMAIN-SUFFIX,icloud.com,🍎 Apple
+  - DOMAIN-SUFFIX,icloud-content.com,🍎 Apple
+  - DOMAIN-SUFFIX,me.com,🍎 Apple
+  - DOMAIN-SUFFIX,cdn-apple.com,🍎 Apple
+  - DOMAIN-SUFFIX,apple-cloudkit.com,🍎 Apple
+  - DOMAIN-SUFFIX,apple-dns.net,🍎 Apple
+  - DOMAIN-SUFFIX,mzstatic.com,🍎 Apple
+
+  # 中国大陆 IP 直连
+  - GEOIP,CN,DIRECT
+
+  # 其他全部走节点选择
+  - MATCH,🔰 节点选择
